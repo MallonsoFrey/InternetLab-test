@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { MatchCard } from "../components/MatchCard";
 import { UpdatedAgo } from "../components/UpdatedAgo";
+import { useFavorites } from "../hooks/useFavorites";
 import { useGetMatches } from "../hooks/useGetMatches";
 
 type Filter = "all" | "upcoming" | "finished";
@@ -21,6 +22,7 @@ const filters: { key: Filter; label: string }[] = [
 export function MatchesScreen() {
   const { matches, loading, refreshing, error, updatedAt, refresh } =
     useGetMatches();
+  const { isFavorite, toggle } = useFavorites();
   const [filter, setFilter] = useState<Filter>("all");
   const visibleMatches = useMemo(
     () =>
@@ -31,6 +33,17 @@ export function MatchesScreen() {
           (filter === "finished" && match.status === "finished"),
       ),
     [filter, matches],
+  );
+  const filterCounts = useMemo(
+    () => ({
+      all: matches?.length ?? 0,
+      upcoming: matches?.filter((match) => match.status === "scheduled").length ?? 0,
+      finished: matches?.filter((match) => match.status === "finished").length ?? 0,
+    }),
+    [matches],
+  );
+  const hasOtherStatuses = matches?.some(
+    (match) => match.status !== "scheduled" && match.status !== "finished",
   );
 
   return (
@@ -89,20 +102,32 @@ export function MatchesScreen() {
                     filter === item.key && styles.selectedFilterText,
                   ]}
                 >
-                  {item.label}
+                  {item.label} ({filterCounts[item.key]})
                 </Text>
               </Pressable>
             ))}
           </View>
+          {hasOtherStatuses && (
+            <Text style={styles.filterHint}>
+              Идущие, перенесённые и другие статусы доступны во вкладке «Все».
+            </Text>
+          )}
 
           <ScrollView contentContainerStyle={styles.list}>
             {visibleMatches.length ? (
               visibleMatches.map((match) => (
-                <MatchCard key={match.id} match={match} />
+                <MatchCard
+                  key={match.id}
+                  match={match}
+                  favorite={isFavorite(match.id)}
+                  onToggleFavorite={() => toggle(match.id)}
+                />
               ))
             ) : (
               <Text style={styles.empty}>
-                Матчей в этой категории пока нет.
+                {matches?.length
+                  ? `Матчей в категории «${filters.find((item) => item.key === filter)?.label}» пока нет.`
+                  : "Матчей пока нет."}
               </Text>
             )}
           </ScrollView>
@@ -159,6 +184,7 @@ const styles = StyleSheet.create({
   selectedFilter: { backgroundColor: "#1d4ed8" },
   filterText: { color: "#374151", fontSize: 13 },
   selectedFilterText: { color: "#fff", fontWeight: "600" },
+  filterHint: { marginTop: -8, marginBottom: 12, color: "#6b7280", fontSize: 12 },
   list: { paddingBottom: 24 },
   empty: { padding: 24, textAlign: "center", color: "#6b7280" },
 });
