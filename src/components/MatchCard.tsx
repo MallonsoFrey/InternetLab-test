@@ -7,6 +7,7 @@ type Props = {
   match: Match;
   favorite: boolean;
   onToggleFavorite: () => void;
+  dark?: boolean;
 };
 
 const statuses: Record<string, string> = {
@@ -16,13 +17,24 @@ const statuses: Record<string, string> = {
   postponed: "Перенесён",
 };
 
-export function MatchCard({ match, favorite, onToggleFavorite }: Props) {
+export function MatchCard({
+  match,
+  favorite,
+  onToggleFavorite,
+  dark = false,
+}: Props) {
   const pulse = useRef(new Animated.Value(0.35)).current;
   const isLive = match.status === "live";
   const start = match.startsAt ? new Date(match.startsAt) : null;
   const date =
     start && !Number.isNaN(start.getTime())
-      ? start.toLocaleString()
+      ? start.toLocaleString(undefined, {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
       : "Дата не указана";
   const progress = Math.min(Math.max(match.minute ?? 0, 0), 90);
 
@@ -47,22 +59,25 @@ export function MatchCard({ match, favorite, onToggleFavorite }: Props) {
   }, [isLive, pulse]);
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, dark && styles.darkCard]}>
       <View style={styles.top}>
-        <Text style={styles.status}>
+        <Text style={[styles.status, dark && styles.darkStatus]}>
           {statuses[match.status] ?? "Статус неизвестен"}
         </Text>
         <FavoriteButton active={favorite} onPress={onToggleFavorite} />
       </View>
-      <Text style={styles.date}>{date}</Text>
+      <Text style={[styles.date, dark && styles.darkSecondary]}>{date}</Text>
       <View style={styles.teams}>
-        <Text style={styles.team} numberOfLines={1}>
+        <Text style={[styles.team, dark && styles.darkText]} numberOfLines={1}>
           {match.home.name}
         </Text>
-        <Text style={styles.score}>
+        <Text style={[styles.score, dark && styles.darkText]}>
           {match.score ? `${match.score.home} : ${match.score.away}` : "—"}
         </Text>
-        <Text style={[styles.team, styles.away]} numberOfLines={1}>
+        <Text
+          style={[styles.team, styles.away, dark && styles.darkText]}
+          numberOfLines={1}
+        >
           {match.away.name}
         </Text>
       </View>
@@ -95,6 +110,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e5e7eb",
   },
+  darkCard: { backgroundColor: "#1f2937", borderColor: "#374151" },
   top: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -103,10 +119,13 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   status: { color: "#2563eb", fontSize: 13, fontWeight: "700" },
+  darkStatus: { color: "#93c5fd" },
   date: { color: "#6b7280", fontSize: 12, marginBottom: 14 },
+  darkSecondary: { color: "#9ca3af" },
   teams: { flexDirection: "row", alignItems: "center", gap: 10 },
   team: { flex: 1, color: "#111827", fontSize: 15, fontWeight: "600" },
   away: { textAlign: "right" },
+  darkText: { color: "#f9fafb" },
   score: {
     minWidth: 48,
     textAlign: "center",

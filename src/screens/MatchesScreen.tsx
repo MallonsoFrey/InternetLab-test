@@ -19,7 +19,9 @@ const filters: { key: Filter; label: string }[] = [
   { key: "finished", label: "Завершённые" },
 ];
 
-export function MatchesScreen() {
+type Props = { dark: boolean; onToggleTheme: () => void };
+
+export function MatchesScreen({ dark, onToggleTheme }: Props) {
   const { matches, loading, refreshing, error, updatedAt, refresh } =
     useGetMatches();
   const { isFavorite, toggle } = useFavorites();
@@ -37,8 +39,10 @@ export function MatchesScreen() {
   const filterCounts = useMemo(
     () => ({
       all: matches?.length ?? 0,
-      upcoming: matches?.filter((match) => match.status === "scheduled").length ?? 0,
-      finished: matches?.filter((match) => match.status === "finished").length ?? 0,
+      upcoming:
+        matches?.filter((match) => match.status === "scheduled").length ?? 0,
+      finished:
+        matches?.filter((match) => match.status === "finished").length ?? 0,
     }),
     [matches],
   );
@@ -47,31 +51,47 @@ export function MatchesScreen() {
   );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Матчи тура</Text>
+    <View style={[styles.container, dark && styles.darkContainer]}>
+      <View style={styles.header}>
+        <Text style={[styles.title, dark && styles.darkText]}>Матчи тура</Text>
+        <Pressable
+          style={[styles.themeButton, dark && styles.darkButton]}
+          onPress={onToggleTheme}
+          accessibilityRole="button"
+          accessibilityLabel={
+            dark ? "Включить светлую тему" : "Включить тёмную тему"
+          }
+        >
+          <Text style={[styles.themeText, dark && styles.darkText]}>
+            {dark ? "☀️ Светлая" : "🌙 Тёмная"}
+          </Text>
+        </Pressable>
+      </View>
       {loading ? (
         <View style={styles.message}>
-          <ActivityIndicator />
-          <Text>Загрузка матчей...</Text>
+          <ActivityIndicator color={dark ? "#93c5fd" : undefined} />
+          <Text style={dark && styles.darkText}>Загрузка матчей...</Text>
         </View>
       ) : (
         <>
           <View style={styles.toolbar}>
-            <View>{updatedAt && <UpdatedAgo since={updatedAt} />}</View>
+            <View>
+              {updatedAt && <UpdatedAgo since={updatedAt} dark={dark} />}
+            </View>
             <Pressable
-              style={styles.refreshButton}
+              style={[styles.refreshButton, dark && styles.darkButton]}
               onPress={() => void refresh()}
               disabled={refreshing}
             >
-              <Text style={styles.refreshText}>
+              <Text style={[styles.refreshText, dark && styles.darkButtonText]}>
                 {refreshing ? "Обновление…" : "Обновить"}
               </Text>
             </Pressable>
           </View>
 
           {error && (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorText}>
+            <View style={[styles.errorBox, dark && styles.darkErrorBox]}>
+              <Text style={[styles.errorText, dark && styles.darkErrorText]}>
                 Не удалось загрузить данные с сервера. Показаны сохранённые
                 матчи.
               </Text>
@@ -79,7 +99,9 @@ export function MatchesScreen() {
                 onPress={() => void refresh()}
                 accessibilityRole="button"
               >
-                <Text style={styles.retryText}>Повторить</Text>
+                <Text style={[styles.retryText, dark && styles.darkErrorText]}>
+                  Повторить
+                </Text>
               </Pressable>
             </View>
           )}
@@ -91,6 +113,7 @@ export function MatchesScreen() {
                 onPress={() => setFilter(item.key)}
                 style={[
                   styles.filterButton,
+                  dark && styles.darkButton,
                   filter === item.key && styles.selectedFilter,
                 ]}
                 accessibilityRole="button"
@@ -99,6 +122,7 @@ export function MatchesScreen() {
                 <Text
                   style={[
                     styles.filterText,
+                    dark && styles.darkButtonText,
                     filter === item.key && styles.selectedFilterText,
                   ]}
                 >
@@ -108,12 +132,15 @@ export function MatchesScreen() {
             ))}
           </View>
           {hasOtherStatuses && (
-            <Text style={styles.filterHint}>
+            <Text style={[styles.filterHint, dark && styles.darkSecondary]}>
               Идущие, перенесённые и другие статусы доступны во вкладке «Все».
             </Text>
           )}
 
-          <ScrollView contentContainerStyle={styles.list}>
+          <ScrollView
+            contentContainerStyle={styles.list}
+            showsVerticalScrollIndicator={false}
+          >
             {visibleMatches.length ? (
               visibleMatches.map((match) => (
                 <MatchCard
@@ -121,10 +148,11 @@ export function MatchesScreen() {
                   match={match}
                   favorite={isFavorite(match.id)}
                   onToggleFavorite={() => toggle(match.id)}
+                  dark={dark}
                 />
               ))
             ) : (
-              <Text style={styles.empty}>
+              <Text style={[styles.empty, dark && styles.darkSecondary]}>
                 {matches?.length
                   ? `Матчей в категории «${filters.find((item) => item.key === filter)?.label}» пока нет.`
                   : "Матчей пока нет."}
@@ -143,11 +171,25 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: "#f8fafc",
   },
+  darkContainer: { backgroundColor: "#111827" },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   title: {
     fontSize: 24,
     fontWeight: "700",
     color: "#111827",
   },
+  darkText: { color: "#f9fafb" },
+  themeButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: "#e5e7eb",
+  },
+  themeText: { color: "#374151", fontWeight: "600" },
   message: {
     marginTop: 12,
     alignItems: "center",
@@ -166,6 +208,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#e0e7ff",
   },
   refreshText: { color: "#3730a3", fontWeight: "600" },
+  darkButton: { backgroundColor: "#374151" },
+  darkButtonText: { color: "#e5e7eb" },
   errorBox: {
     marginTop: 12,
     padding: 12,
@@ -173,6 +217,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#fef2f2",
   },
   errorText: { color: "#991b1b" },
+  darkErrorBox: { backgroundColor: "#451a1a" },
+  darkErrorText: { color: "#fecaca" },
   retryText: { marginTop: 6, color: "#b91c1c", fontWeight: "700" },
   filters: { flexDirection: "row", gap: 8, marginVertical: 16 },
   filterButton: {
@@ -184,7 +230,13 @@ const styles = StyleSheet.create({
   selectedFilter: { backgroundColor: "#1d4ed8" },
   filterText: { color: "#374151", fontSize: 13 },
   selectedFilterText: { color: "#fff", fontWeight: "600" },
-  filterHint: { marginTop: -8, marginBottom: 12, color: "#6b7280", fontSize: 12 },
+  filterHint: {
+    marginTop: -8,
+    marginBottom: 12,
+    color: "#6b7280",
+    fontSize: 12,
+  },
+  darkSecondary: { color: "#9ca3af" },
   list: { paddingBottom: 24 },
   empty: { padding: 24, textAlign: "center", color: "#6b7280" },
 });
