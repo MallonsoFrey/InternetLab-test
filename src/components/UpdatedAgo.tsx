@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { useEffect, useState } from "react";
+import { StyleSheet, Text } from "react-native";
 
 type Props = {
   // Момент последней успешной загрузки данных.
@@ -11,10 +11,14 @@ export function UpdatedAgo({ since }: Props) {
   const [seconds, setSeconds] = useState(0);
 
   useEffect(() => {
-    setInterval(() => {
-      setSeconds(seconds + 1);
-    }, 1000);
-  }, []);
+    const update = () =>
+      setSeconds(
+        Math.max(0, Math.floor((Date.now() - since.getTime()) / 1000)),
+      );
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [since]);
 
   return <Text style={styles.text}>Обновлено {seconds} сек назад</Text>;
 }
@@ -22,6 +26,6 @@ export function UpdatedAgo({ since }: Props) {
 const styles = StyleSheet.create({
   text: {
     fontSize: 13,
-    color: '#6b7280',
+    color: "#6b7280",
   },
 });
